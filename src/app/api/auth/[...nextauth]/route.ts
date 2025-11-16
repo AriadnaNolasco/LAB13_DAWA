@@ -19,6 +19,11 @@ export const authOptions: AuthOptions = {
         strategy: "jwt",
     },
 
+    pages: {
+        signIn: "/signIn",
+        // opcional: new user redirect
+    },
+
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
