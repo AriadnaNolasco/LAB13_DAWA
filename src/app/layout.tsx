@@ -41,11 +41,13 @@ export default async function RootLayout({
               MyAuthApp
             </Link>
             <ul className="flex items-center justify-center gap-6 text-sm">
-              <li>
-                <Link href="/dashboard" className="hover: text-gray-600">
-                  Dashboard
-                </Link>
-              </li>
+              {session?.user && (
+                <li>
+                  <Link href="/dashboard" className="hover: text-gray-600">
+                    Dashboard
+                  </Link>
+                </li>
+              )}
               {session?.user && (
                 <li>
                   <Link href="/profile" className="hover: text-gray-600">
@@ -72,7 +74,7 @@ export default async function RootLayout({
             </ul>
           </div>
         </nav>
-        <Provider>
+        <Provider session={session}>
           <main>{children}</main>
         </Provider>
       </body>
