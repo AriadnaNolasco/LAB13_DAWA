@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FaGoogle, FaGithub } from 'react-icons/fa';
 import { useState } from 'react';
-import Link from 'next/link'; // Asegúrate de importar Link
+import Link from 'next/link';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -57,16 +57,20 @@ export default function LoginPage() {
     };
 
     return (
-        // Fondo oscuro y centrado como en la Imagen 2
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-            {/* Contenedor de la tarjeta de login - bg-gray-800 y bordes redondeados como en la Imagen 2 */}
-            <div className="bg-gray-800 p-8 rounded-xl shadow-2xl w-96">
+        // *******************************************************************
+        // CAMBIO CLAVE: Sustituimos el contenedor 'min-h-screen' y el fondo 
+        // por un contenedor simple que permite que el layout principal haga su trabajo.
+        // *******************************************************************
+        <div className="flex items-center justify-center w-full h-full p-6"> 
+            
+            {/* Contenedor de la tarjeta de login - BG y dimensiones */}
+            <div className="bg-gray-800 p-8 rounded-xl shadow-2xl w-96 text-white"> 
                 <h1 className="text-3xl font-bold mb-8 text-center">
                     Sign In
                 </h1>
                 {error && <div className="p-3 mb-4 text-sm text-red-300 bg-red-800 rounded-lg">{error}</div>}
 
-                {/* Botones de Proveedores Sociales - Primero como en la Imagen 2 */}
+                {/* Botones de Proveedores Sociales */}
                 <div className="space-y-3 mb-6">
                     <button
                         onClick={handleGoogleSignIn}
@@ -76,7 +80,7 @@ export default function LoginPage() {
                         Sign in with Google
                     </button>
                     <button
-                        onClick={handleGithubSignIn}
+                        onClick={handleGithubSignIn} 
                         className="w-full bg-gray-700 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-3 text-lg font-semibold"
                     >
                         <FaGithub className="text-xl" />
@@ -89,7 +93,7 @@ export default function LoginPage() {
                     or
                 </div>
 
-                {/* Formulario de Credenciales - Ajustado para coincidir con la Imagen 2 */}
+                {/* Formulario de Credenciales */}
                 <form onSubmit={handleCredentialsSignIn} className="space-y-4">
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-1">
@@ -123,18 +127,18 @@ export default function LoginPage() {
                         type="submit"
                         className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-semibold text-lg mt-6"
                     >
-                        Login
+                        Sign in with Credentials
                     </button>
                 </form>
+                
+                {/* Enlace de Registro DENTRO de la tarjeta */}
+                <p className="mt-6 text-sm text-center text-gray-400">
+                    ¿No tienes una cuenta?{' '}
+                    <Link href="/signUp" className="text-blue-400 hover:underline font-semibold">
+                        Regístrate
+                    </Link>
+                </p>
             </div>
-
-            {/* Enlace de Registro - Mantenemos el estilo de la Imagen 1 pero con colores oscuros */}
-            <p className="absolute bottom-8 text-sm text-gray-400 text-center">
-                ¿No tienes una cuenta?{' '}
-                <Link href="/signUp" className="text-blue-400 hover:underline font-semibold">
-                    Regístrate
-                </Link>
-            </p>
         </div>
     );
 }
