@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FaGoogle, FaGithub } from 'react-icons/fa';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -115,6 +116,12 @@ export default function LoginPage() {
                     </button>
                 </div>
             </div>
+            <p className="mt-4 text-sm text-center">
+                ¿No tienes una cuenta?{' '}
+                <Link href="/signUp" className="text-blue-500 hover:underline font-semibold">
+                    Regístrate
+                </Link>
+            </p>
         </div>
     );
 }

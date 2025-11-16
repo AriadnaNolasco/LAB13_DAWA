@@ -1,33 +1,24 @@
-import NextAuth from "next-auth"
+import NextAuth, { AuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import * as bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 
-interface MockUser {
-    id: string;
-    name: string;
-    email: string;
-    password: string; 
-    attempts: number;
-    lockedUntil: number | null; // Corregido el tipo
-}
+// ----------------------------------------------------
+// Opciones de Autenticación
+// ----------------------------------------------------
+// Tipamos el objeto authOptions con AuthOptions
+export const authOptions: AuthOptions = {
+    // 1. Adaptador de Prisma para sesiones y OAuth
+    adapter: PrismaAdapter(prisma),
 
-const users: MockUser[] = [
-  {
-    id: "1",
-    name: "User Test",
-    email: "test@example.com",
-    password: bcrypt.hashSync("password123", 10), // Contraseña cifrada con bcrypt
-    attempts: 0,
-    lockedUntil: null,
-  },
-  // Aquí se podrían agregar más usuarios
-];
+    // 2. Estrategia JWT (Ahora tipado correctamente)
+    session: {
+        strategy: "jwt",
+    },
 
-
-export const authOptions = {
-    // Configure one on mone authentication providens
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -44,34 +35,59 @@ export const authOptions = {
                 password: { label: "Password", type: "password" },
             },
             async authorize(credentials, req) {
-                // Lógica de autenticación:
-                const user = users.find(u => u.email === credentials?.email);
-
-                if (!user) {
+                if (!credentials?.email || !credentials?.password) {
                     return null;
                 }
 
-                // Bloqueo por intentos fallidos
-                if (user.lockedUntil && user.lockedUntil > Date.now()) {
-                    throw new Error("Cuenta bloqueada por intentos fallidos.");
+                // 1. Buscar usuario en la base de datos
+                const user = await prisma.user.findUnique({
+                    where: { email: credentials.email },
+                });
+
+                if (!user || !user.password) {
+                    throw new Error("Invalid email or password.");
                 }
 
-                const isMatch = await bcrypt.compare(credentials!.password, user.password);
+                // 2. Bloqueo por intentos fallidos (Bloquear por 5 minutos)
+                const FIVE_MINUTES = 5 * 60 * 1000;
+                // Nota: lockedUntil es DateTime, por eso usamos .getTime()
+                if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+                    throw new Error("Cuenta bloqueada por demasiados intentos. Intente más tarde.");
+                }
+
+                // 3. Comparar contraseña con bcrypt
+                const isMatch = await bcrypt.compare(credentials.password, user.password);
 
                 if (isMatch) {
-                    // Éxito: Resetear intentos fallidos
-                    user.attempts = 0;
-                    user.lockedUntil = null;
-                    // Retornar el objeto de usuario (sin la contraseña)
+                    // Éxito: Resetear intentos
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { attempts: 0, lockedUntil: null },
+                    });
+
+                    // Retornar el objeto de usuario (ajustado para ser compatible con NextAuth)
                     return { id: user.id, name: user.name, email: user.email };
                 } else {
-                    // Fracaso: Incrementar intentos y bloquear si es necesario
-                    user.attempts += 1;
+                    // Fracaso: Incrementar intentos y bloquear
                     const MAX_ATTEMPTS = 3;
-                    if (user.attempts >= MAX_ATTEMPTS) {
-                        user.lockedUntil = Date.now() + 60 * 1000; // Bloquear por 60 segundos
+                    const nextAttempts = user.attempts + 1;
+
+                    if (nextAttempts >= MAX_ATTEMPTS) {
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: {
+                                attempts: nextAttempts,
+                                lockedUntil: new Date(Date.now() + FIVE_MINUTES)
+                            },
+                        });
+                        throw new Error("Invalid email or password. Your account has been temporarily locked.");
+                    } else {
+                        await prisma.user.update({
+                            where: { id: user.id },
+                            data: { attempts: nextAttempts },
+                        });
+                        throw new Error("Invalid email or password.");
                     }
-                    throw new Error("Invalid email or password.");
                 }
             },
         }),
